@@ -30,6 +30,6 @@ print("Server running on port 8000")
 if __name__ == "__main__":
     import uvicorn
     
-    uvicorn.run("fly_app:app", reload=True)
+    uvicorn.run("fly_app.app:app", reload=True)
 
     
