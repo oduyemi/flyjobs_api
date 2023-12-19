@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, CheckConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, CheckConstraint, LargeBinary
 from sqlalchemy.orm import relationship, sessionmaker, registry
 from sqlalchemy.ext.declarative import declarative_base
 from fly_app import Base, engine
@@ -20,15 +20,16 @@ class Users(Base):
     user_id = Column(Integer, primary_key=True, unique=True)
     username = Column(String)
     firstname = Column(String(255), nullable=False)
+    middlename = Column(String(255))
     lastname = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False)
     hashed_password = Column(String)
     skills = Column(String)
     experience = Column(String)
     education = Column(String)
-    resume = Column(String)
-    applied_jobs = Column(String, default="[]")
-    saved_jobs = Column(String, default="[]")
+    resume = Column(LargeBinary)
+    applied_jobs = relationship("jobs", backref='applicants', secondary='job_applicants')
+    saved_jobs = relationship("jobs", backref='saved_by', secondary='saved_jobs')
 
 
 # CLIENTS/EMPLOYERS TABLE
@@ -38,7 +39,7 @@ class Companies(Base):
     company_id = Column(Integer, unique=True, primary_key=True)
     company_name = Column(String)
     contact_information = Column(String)
-    posted_jobs = Column(String, default="[]")
+    posted_jobs = ForeignKey("jobs.job_id")
 
 
 # JOBS TABLE
@@ -49,23 +50,33 @@ class Jobs(Base):
     title = Column(String)
     company_id = ForeignKey("compamies.company_id")
     location = Column(String)
-    job_type = Column(String, CheckConstraint("job_type IN ('full-time', 'part-time', 'contract')")) # full-time, part-time, contract
+    job_type = Column(String, CheckConstraint("job_type IN ('full-time', 'part-time', 'contract')"))
     description = Column(String)
     requirements = Column(String)
     responsibilities = Column(String)
     benefits = Column(String)
     salary_range = Column(String)
     posted_date = Column(DateTime)
-    deadline = Column(String)
-    applicants = Column(String, default="[]") # list of applicants user_ids
+    deadline = Column(DateTime)
+    applicants = relationship('users', backref='applied_jobs', secondary='job_applicants')
+    saved_by = relationship('users', backref='saved_jobs', secondary='saved_jobs')
+
+
+class JobApplicants(Base):
+    __tablename__ = 'job_applicants'
+
+    job_applicant_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    job_id = Column(Integer, ForeignKey("jobs.job_id"))
 
 
 # SAVED JOBS
 class SavedJobs(Base):
     __tablename__ = "saved_jobs"
 
-    applicant_id = Column(Integer, primary_key=True)
-    job_posting_id = Column(Integer, primary_key=True)
+    saved_job_id = Column(Integer, primary_key=True)
+    applicant_id = Column(Integer, ForeignKey("users.user_id"))
+    job_posting_id = Column(Integer, ForeignKey("jobs.job_id"))
 
 
 # SKILLS TABLE
